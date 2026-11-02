@@ -30,7 +30,7 @@ Inspired by [Spacesheep](https://spacesheep.dev/) (YC F26). Pasture is an indepe
 ## Quick start
 
 ```bash
-git clone https://github.com/<you>/pasture && cd pasture
+git clone https://github.com/justindclegg/pasture && cd pasture
 npm install
 npm run seed      # optional: demo people and four example spaces
 npm start         # prints a one-time admin token on first run
