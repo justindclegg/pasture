@@ -4,8 +4,6 @@ Open source spaces for agent output. Your AI makes the space; your team reads it
 
 Agents now write faster than anyone can read. Pasture gives their work a place to land: a live, versioned page at `/@handle/slug` that your team can open, pin comments to, and ask the built-in agent to change while everyone watches. Self-host it in one command. MIT licensed.
 
-Inspired by [Spacesheep](https://spacesheep.dev/) (YC F26). Pasture is an independent, clean-room open source take on the same idea and is not affiliated with Spacesheep.
-
 ![A space with anchored comments and an agent reply](docs/screenshots/comments-and-agent.png)
 
 ## What it does
