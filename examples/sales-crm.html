@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q4 pipeline</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; color: #1b1d21; background: #f7f7f5; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 32px; margin-bottom: 20px; }
+  h1 { font-size: 28px; letter-spacing: -.02em; margin: 0; }
+  h1 b { font-variant-numeric: tabular-nums; }
+  .goal { flex: 1; min-width: 260px; }
+  .goal-bar { height: 10px; background: #e6e5e0; border-radius: 99px; overflow: hidden; display: flex; }
+  .goal-bar i { display: block; height: 100%; transition: width .3s; }
+  .goal-meta { display: flex; justify-content: space-between; color: #6b6d72; font-size: 12.5px; margin-top: 6px; }
+  .board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; }
+  .col { background: #efeee9; border-radius: 12px; padding: 10px; min-height: 280px; transition: background .15s; }
+  .col.over { background: #e2e8e3; }
+  .col h2 { font-size: 13px; margin: 2px 4px 10px; display: flex; justify-content: space-between; color: #4b4e54; }
+  .deal { background: #fff; border: 1px solid #e3e2dc; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: grab; }
+  .deal:active { cursor: grabbing; }
+  .deal b { display: block; }
+  .deal span { color: #6b6d72; font-size: 12.5px; }
+  .deal .amt { float: right; font-weight: 600; color: #1b1d21; font-variant-numeric: tabular-nums; }
+  .add { width: 100%; border: 1px dashed #c9c8c1; background: transparent; border-radius: 10px; padding: 8px; color: #6b6d72; cursor: pointer; font: inherit; }
+  .add:hover { background: #fff; }
+  form.new { background: #fff; border-radius: 10px; padding: 8px; display: grid; gap: 6px; margin-bottom: 8px; }
+  form.new input { font: inherit; border: 1px solid #ddd; border-radius: 6px; padding: 6px 8px; }
+  form.new button { font: inherit; border: 0; background: #1b1d21; color: #fff; border-radius: 6px; padding: 6px; cursor: pointer; }
+  .who { color: #6b6d72; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="who" id="who">Shared with your team. Drag a deal to move it; everyone sees it live.</div><h1 id="title">Q4 pipeline: <b id="open">$0k</b> open</h1></div>
+    <div class="goal" id="forecast"><div class="goal-bar"><i id="signed-bar" style="background:#2f6b4f"></i><i id="weighted-bar" style="background:#9cc3ad"></i></div>
+      <div class="goal-meta"><span id="goal-text">Signed $0k · weighted forecast $0k</span><span>Goal $250k</span></div></div>
+  </header>
+  <div class="board" id="board"></div>
+</main>
+<script>
+  const STAGES = [['lead', 'Lead', 0.1], ['talking', 'Talking', 0.3], ['proposal', 'Proposal', 0.6], ['signed', 'Signed', 1]];
+  const GOAL = 250;
+  const SEED = [
+    { id: 'd1', name: 'Northwind Foods', amt: 42, stage: 'proposal', owner: 'Ana' },
+    { id: 'd2', name: 'Bluebird Health', amt: 28, stage: 'talking', owner: 'Sam' },
+    { id: 'd3', name: 'Harbor Robotics', amt: 65, stage: 'lead', owner: 'Lee' },
+    { id: 'd4', name: 'Lumen Schools', amt: 18, stage: 'signed', owner: 'Ana' },
+    { id: 'd5', name: 'Quarry Labs', amt: 36, stage: 'talking', owner: 'Lee' },
+    { id: 'd6', name: 'Fieldstone Co-op', amt: 22, stage: 'signed', owner: 'Sam' },
+  ];
+  let deals = [];
+  const k = (n) => `$${Math.round(n)}k`;
+  function save() { pasture.state.set('deals', deals); }
+  function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    for (const [id, label] of STAGES) {
+      const col = document.createElement('section');
+      col.className = 'col'; col.dataset.stage = id; col.id = 'stage-' + id;
+      const items = deals.filter((d) => d.stage === id);
+      col.innerHTML = `<h2><span>${label}</span><span>${k(items.reduce((s, d) => s + d.amt, 0))}</span></h2>`;
+      for (const d of items) {
+        const el = document.createElement('div');
+        el.className = 'deal'; el.draggable = true; el.id = 'deal-' + d.id;
+        el.innerHTML = `<span class="amt">${k(d.amt)}</span><b></b><span></span>`;
+        el.querySelector('b').textContent = d.name; el.querySelector('span:last-child').textContent = d.owner;
+        el.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', d.id));
+        col.appendChild(el);
+      }
+      const add = document.createElement('button');
+      add.className = 'add'; add.type = 'button'; add.textContent = '+ Add deal';
+      add.onclick = () => {
+        const f = document.createElement('form'); f.className = 'new';
+        f.innerHTML = '<input name="name" placeholder="Company" required><input name="amt" type="number" min="1" placeholder="Amount in $k" required><button>Add</button>';
+        f.onsubmit = (e) => { e.preventDefault(); deals.push({ id: 'd' + Date.now().toString(36), name: f.name.value, amt: Number(f.amt.value), stage: id, owner: pasture.me.name }); save(); };
+        add.replaceWith(f); f.name.focus();
+      };
+      col.appendChild(add);
+      col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('over'); });
+      col.addEventListener('dragleave', () => col.classList.remove('over'));
+      col.addEventListener('drop', (e) => {
+        e.preventDefault(); col.classList.remove('over');
+        const d = deals.find((x) => x.id === e.dataTransfer.getData('text/plain'));
+        if (d && d.stage !== id) { d.stage = id; save(); }
+      });
+      board.appendChild(col);
+    }
+    const open = deals.filter((d) => d.stage !== 'signed').reduce((s, d) => s + d.amt, 0);
+    const signed = deals.filter((d) => d.stage === 'signed').reduce((s, d) => s + d.amt, 0);
+    const weighted = deals.filter((d) => d.stage !== 'signed').reduce((s, d) => s + d.amt * STAGES.find((x) => x[0] === d.stage)[2], 0);
+    document.getElementById('open').textContent = k(open);
+    document.getElementById('signed-bar').style.width = Math.min(100, (signed / GOAL) * 100) + '%';
+    document.getElementById('weighted-bar').style.width = Math.min(100 - (signed / GOAL) * 100, (weighted / GOAL) * 100) + '%';
+    document.getElementById('goal-text').textContent = `Signed ${k(signed)} · weighted forecast ${k(signed + weighted)}`;
+  }
+  pasture.ready.then(() => {
+    deals = pasture.state.get('deals') || SEED;
+    render();
+    pasture.state.on('deals', (v) => { deals = v || []; render(); });
+  });
+</script>
+</body>
+</html>

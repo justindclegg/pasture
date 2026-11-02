@@ -1,0 +1,25 @@
+{
+  "name": "pasture",
+  "version": "0.1.0",
+  "description": "Open source spaces for agent output. Your AI makes the space; your team reads it, comments on it, and builds on it.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "pasture": "cli/pasture.js"
+  },
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node scripts/seed.js",
+    "test": "node --test test/",
+    "simulate": "node scripts/simulate.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "better-sqlite3": "^12.4.1"
+  }
+}

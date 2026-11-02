@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How GPUs work</title>
+<style>
+  :root { --ink:#16181d; --muted:#666b75; --line:#e7e8ec; --cpu:#c2410c; --gpu:#1d4ed8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); background: #fff; }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+  .kicker { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -.03em; margin: 0 0 14px; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 36px; }
+  .race { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .lane { border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .lane h2 { margin: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: baseline; }
+  .lane .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cpu .big { color: var(--cpu); } .gpu .big { color: var(--gpu); }
+  canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 8px; background: #f6f7f9; margin-top: 12px; image-rendering: pixelated; }
+  .note { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+  button { margin-top: 18px; font: 600 15px inherit; font-family: inherit; padding: 10px 18px; border-radius: 10px; border: 0; background: var(--ink); color: #fff; cursor: pointer; }
+  section { margin-top: 56px; }
+  h3 { font-size: 22px; letter-spacing: -.01em; margin: 0 0 10px; }
+  .chip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-width: 420px; margin-top: 16px; }
+  .sm { aspect-ratio: 1; border-radius: 6px; background: #dbe4fb; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 4px; }
+  .sm i { background: var(--gpu); border-radius: 2px; opacity: .75; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 15px; }
+  td, th { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; }
+  @media (max-width: 640px) { .race { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="kicker">Explainer · 4 minute read</p>
+  <h1 id="answer">A GPU draws every pixel at once.</h1>
+  <p class="lede">Each GPU core is slower than a CPU core. There are just thousands of them, and a picture is thousands of small, identical jobs.</p>
+
+  <div class="race" id="race">
+    <div class="lane cpu"><h2>CPU · 8 fast cores <span class="big" id="cpu-t">0.0 s</span></h2><canvas id="cpu" width="64" height="64"></canvas><p class="note">Works through the image 8 pixels at a time.</p></div>
+    <div class="lane gpu"><h2>GPU · 4,096 cores <span class="big" id="gpu-t">0.0 s</span></h2><canvas id="gpu" width="64" height="64"></canvas><p class="note">One core per pixel. One step.</p></div>
+  </div>
+  <button id="go" type="button">Race them again</button>
+
+  <section id="inside">
+    <h3>Inside the chip</h3>
+    <p>Cores come in blocks called streaming multiprocessors. This toy GPU has 64 blocks of 64 cores. Every block runs the same instruction on different pixels at the same moment.</p>
+    <div class="chip" id="chip"></div>
+  </section>
+
+  <section id="when">
+    <h3>When each one wins</h3>
+    <table>
+      <thead><tr><th>Job</th><th>Better on</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Rendering a frame</td><td>GPU</td><td>Millions of pixels, same math</td></tr>
+        <tr><td>Training a neural network</td><td>GPU</td><td>Huge matrix multiplies</td></tr>
+        <tr><td>Running your browser</td><td>CPU</td><td>Many different, branching tasks</td></tr>
+        <tr><td>Compiling code</td><td>CPU</td><td>Sequential steps that depend on each other</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+<script>
+  const N = 64, PIX = N * N;
+  const color = (i) => { const x = i % N, y = (i / N) | 0; const v = Math.sin(x / 6) + Math.cos(y / 7) + Math.sin((x + y) / 9); const h = 200 + v * 40; return `hsl(${h} 70% ${55 + v * 8}%)`; };
+  function race() {
+    const cpu = document.getElementById('cpu').getContext('2d');
+    const gpu = document.getElementById('gpu').getContext('2d');
+    cpu.clearRect(0, 0, N, N); gpu.clearRect(0, 0, N, N);
+    let done = 0; const start = performance.now();
+    setTimeout(() => { for (let i = 0; i < PIX; i++) { gpu.fillStyle = color(i); gpu.fillRect(i % N, (i / N) | 0, 1, 1); } document.getElementById('gpu-t').textContent = '0.1 s'; }, 100);
+    (function step() {
+      for (let k = 0; k < 8 * 3 && done < PIX; k++, done++) { cpu.fillStyle = color(done); cpu.fillRect(done % N, (done / N) | 0, 1, 1); }
+      document.getElementById('cpu-t').textContent = ((performance.now() - start) / 1000).toFixed(1) + ' s';
+      if (done < PIX) requestAnimationFrame(step);
+    })();
+  }
+  document.getElementById('go').onclick = race;
+  const chip = document.getElementById('chip');
+  for (let i = 0; i < 64; i++) { const sm = document.createElement('div'); sm.className = 'sm'; sm.innerHTML = '<i></i>'.repeat(16); chip.appendChild(sm); }
+  race();
+</script>
+</body>
+</html>

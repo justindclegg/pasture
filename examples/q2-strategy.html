@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How we use AI for productivity and joy</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.65 Georgia, 'Iowan Old Style', serif; color: #22201c; background: #fffdf8; }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 24px 90px; }
+  .kicker { font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #8a6d3b; }
+  h1 { font-size: clamp(30px, 5vw, 42px); line-height: 1.12; letter-spacing: -.015em; margin: 14px 0 28px; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 0 0 40px; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .stat b { display: block; font-size: 40px; letter-spacing: -.02em; line-height: 1.1; }
+  .stat span { font-size: 14px; color: #6f6a60; }
+  h2 { font: 600 15px ui-sans-serif, system-ui, sans-serif; margin: 40px 0 14px; }
+  .bars { font: 14px ui-sans-serif, system-ui, sans-serif; display: grid; gap: 10px; }
+  .bar { display: grid; grid-template-columns: 80px 1fr 40px; gap: 12px; align-items: center; }
+  .bar i { height: 22px; background: #c79a4a; border-radius: 4px; display: block; }
+  .bar em { font-style: normal; font-variant-numeric: tabular-nums; color: #6f6a60; }
+  blockquote { margin: 40px 0; padding: 4px 0 4px 20px; border-left: 3px solid #c79a4a; font-size: 21px; line-height: 1.45; }
+  p { margin: 0 0 18px; }
+  @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">Q2 strategy overview</div>
+  <h1 id="headline">How we use AI for productivity and joy</h1>
+  <div class="stats">
+    <div class="stat" id="stat-hours"><b>6.5 h</b><span>back each week, per person</span></div>
+    <div class="stat" id="stat-excited"><b>82%</b><span>of the team excited to try it</span></div>
+    <div class="stat" id="stat-rating"><b>4.8/5</b><span>from the pilot teams</span></div>
+  </div>
+  <h2>Hours back each week, per person</h2>
+  <div class="bars" id="hours-chart">
+    <div class="bar"><span>Support</span><i style="width:100%"></i><em>9.0</em></div>
+    <div class="bar"><span>Finance</span><i style="width:80%"></i><em>7.2</em></div>
+    <div class="bar"><span>Sales</span><i style="width:61%"></i><em>5.5</em></div>
+  </div>
+  <blockquote id="finding">Teams that pick their own tools love them most; we start where people ask.</blockquote>
+  <p>Over the pilot, three teams used assistants for drafting, triage, and reporting. The biggest gains came where the work was repetitive and the team chose the tool themselves.</p>
+  <p>Next quarter we expand to every team that asks, with a shared review step for anything sent to customers.</p>
+</main>
+</body>
+</html>

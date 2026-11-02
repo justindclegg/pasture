@@ -1,0 +1,9 @@
+services:
+  pasture:
+    build: .
+    ports: ["4321:4321"]
+    volumes: ["pasture-data:/data"]
+    env_file: [.env]
+    restart: unless-stopped
+volumes:
+  pasture-data:

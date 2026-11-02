@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chip thermals</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; color: #e8eaee; background: #0e1116; }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 24px 60px; }
+  .live { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #9aa3b2; }
+  .live i { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 #22c55e88; animation: ping 1.4s infinite; }
+  .live.stale i { background: #6b7280; animation: none; }
+  @keyframes ping { 70% { box-shadow: 0 0 0 8px #22c55e00; } }
+  h1 { font-size: clamp(24px, 4vw, 34px); letter-spacing: -.02em; margin: 10px 0 24px; font-weight: 650; }
+  h1 b { color: var(--hot, #fbbf24); font-variant-numeric: tabular-nums; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi { background: #161b22; border: 1px solid #232a35; border-radius: 12px; padding: 16px; }
+  .kpi span { color: #9aa3b2; font-size: 13px; }
+  .kpi b { display: block; font-size: 34px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .panel { background: #161b22; border: 1px solid #232a35; border-radius: 12px; padding: 16px; }
+  .panel h2 { font-size: 14px; color: #9aa3b2; font-weight: 500; margin: 0 0 8px; display: flex; justify-content: space-between; }
+  svg { width: 100%; height: 260px; display: block; }
+  .hint { color: #6b7280; font-size: 13px; margin-top: 18px; }
+  code { background: #1f2630; padding: 2px 6px; border-radius: 4px; color: #cbd5e1; }
+  @media (max-width: 640px) { .kpis { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <span class="live stale" id="live"><i></i><span id="live-text">Waiting for data</span></span>
+  <h1 id="headline">Chip under load: hottest core at <b id="h-temp">–</b></h1>
+  <div class="kpis">
+    <div class="kpi" id="kpi-temp"><span>Hottest core</span><b id="k-temp">–</b></div>
+    <div class="kpi" id="kpi-load"><span>Load</span><b id="k-load">–</b></div>
+    <div class="kpi" id="kpi-peak"><span>Peak this session</span><b id="k-peak">–</b></div>
+  </div>
+  <div class="panel" id="chart-panel">
+    <h2><span>Hottest core, recent readings</span><span>Alert at 75 °C</span></h2>
+    <svg id="chart" viewBox="0 0 600 260" preserveAspectRatio="none" role="img" aria-label="Temperature over time"></svg>
+  </div>
+  <p class="hint">Stream readings in with <code>pasture stream chip-thermals temp '{"celsius": 61.2, "load": 0.42}'</code> or run <code>npm run simulate</code>.</p>
+</main>
+<script>
+  const ALERT = 75;
+  let points = [];
+  let peak = -Infinity;
+  const fmt = (c) => `${c.toFixed(1)} °C`;
+  function colorFor(c) { return c >= ALERT ? '#f87171' : c >= 60 ? '#fbbf24' : '#34d399'; }
+  function render() {
+    const svg = document.getElementById('chart');
+    const W = 600, H = 260, pad = 10;
+    const data = points.slice(-120);
+    const lo = 25, hi = 95;
+    const y = (c) => H - pad - ((c - lo) / (hi - lo)) * (H - pad * 2);
+    const x = (i) => pad + (i / Math.max(1, data.length - 1)) * (W - pad * 2);
+    let grid = '';
+    for (const g of [30, 50, 70, 90]) grid += `<line x1="0" x2="${W}" y1="${y(g)}" y2="${y(g)}" stroke="#232a35"/><text x="4" y="${y(g) - 4}" fill="#5b6472" font-size="11">${g}°</text>`;
+    grid += `<line x1="0" x2="${W}" y1="${y(ALERT)}" y2="${y(ALERT)}" stroke="#f87171" stroke-dasharray="6 5"/>`;
+    const d = data.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.c).toFixed(1)}`).join('');
+    const area = data.length ? `${d}L${x(data.length - 1)},${H}L${x(0)},${H}Z` : '';
+    svg.innerHTML = `${grid}<path d="${area}" fill="#fbbf2418"/><path d="${d}" fill="none" stroke="#fbbf24" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    const last = points[points.length - 1];
+    if (!last) return;
+    document.documentElement.style.setProperty('--hot', colorFor(last.c));
+    document.getElementById('h-temp').textContent = fmt(last.c);
+    document.getElementById('k-temp').textContent = fmt(last.c);
+    document.getElementById('k-temp').style.color = colorFor(last.c);
+    document.getElementById('k-load').textContent = last.load != null ? Math.round(last.load * 100) + '%' : '–';
+    document.getElementById('k-peak').textContent = fmt(peak);
+  }
+  function add(p) {
+    const v = p.value; const c = typeof v === 'number' ? v : Number(v.celsius);
+    if (!isFinite(c)) return;
+    points.push({ c, load: v.load, t: p.t }); peak = Math.max(peak, c);
+    if (points.length > 600) points.shift();
+    const live = document.getElementById('live');
+    live.classList.remove('stale'); document.getElementById('live-text').textContent = 'Live';
+    clearTimeout(add.t); add.t = setTimeout(() => { live.classList.add('stale'); document.getElementById('live-text').textContent = 'No data for 10 s'; }, 10000);
+  }
+  pasture.ready.then(() => {
+    pasture.stream.history('temp').forEach(add);
+    render();
+    pasture.stream.on('temp', (p) => { add(p); render(); });
+  });
+</script>
+</body>
+</html>
